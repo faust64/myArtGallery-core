@@ -4,7 +4,7 @@ var express = require('express');
 var mongo   = require('mongodb');
 var sys     = require('sys');
 
-var BIN_PATH       = '/home/syn/app/bin/'
+var BIN_PATH       = '/etc/node/apps-available/myArtGallery/bin/'
 var HTTP_PORT      = 8080;
 var MONGO_DATABASE = 'myArtGallery';
 var MONGO_HOST     = 'localhost';
