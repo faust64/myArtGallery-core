@@ -12,6 +12,7 @@ var MONGO_PORT     = 27017;
 var SEARCH_LIMIT   = 21;
 var DEFAULT_SORT   = [[ 'dname', 1 ]];
 var TOP_SORT       = [[ 'rank', 1 ]];
+var DYNAMIC_INDEX  = false;
 
 var app       = express();
 var client    = mongo.MongoClient;
@@ -197,8 +198,7 @@ app.get(/^\/artists\/([^\/]+)\/+/, function (req, res, next) {
 			res.send(ddocs);
 			if (now > lifetime) {
 			    console.log("update required");
-			    var args  = docs['id'] + ' "' + docs['dname']
-				      + '" upd';
+			    var args  = docs['id'] + ' "' + docs['dname'];
 			    var child = exec(BIN_PATH + "extended_artist_info "
 				      + args, function(ddderr, stdo, stde) {
 					    console.log("database updated");
@@ -258,8 +258,7 @@ app.get(/^\/artworks\/([^\/]+)\/+/, function (req, res, next) {
 			res.send(ddocs);
 			if (now > lifetime) {
 			    console.log("update required");
-			    var args  = docs['id'] + ' "' + docs['dname']
-				      + '" upd';
+			    var args  = docs['id'] + ' "' + docs['dname'];
 			    var child = exec(BIN_PATH + "extended_artwork_info "
 				      + args, function(ddderr, stdo, stde) {
 					    console.log("database updated");
@@ -334,13 +333,27 @@ app.get(/^\/artists\/+/, function (req, res, next) {
 	assert.equal(null, err);
 	var collection = db.collection('artists_cache');
 	var query      = { };
-	var qopts      = { limit: SEARCH_LIMIT, sort: DEFAULT_SORT };
+	if (DYNAMIC_INDEX) {
+	    var qopts  = { };
+	} else {
+	    var qopts  = { limit: SEARCH_LIMIT, sort: DEFAULT_SORT };
+	}
 
 	console.log("MongoDB connection initiated, looking for artist index");
 	collection.find(query, qopts).toArray(function(derr, docs) {
 	    assert.equal(null, derr);
-	    console.log("index to dynamize");
-	    res.send(docs);
+	    if (DYNAMIC_INDEX) {
+		var dlen = docs.length, rdocs = new Array();
+		for (var cnt = 0; cnt < SEARCH_LIMIT; cnt++) {
+		    var get = Math.floor(Math.random() * (dlen + 1));
+		    rdocs[cnt] = docs[get];
+		}
+		console.log('index picked up ' + cnt + ' random artists');
+		res.send(rdocs);
+	    } else {
+		console.log("index to dynamize");
+		res.send(docs);
+	    }
 	});
     });
 });
@@ -350,13 +363,28 @@ app.get(/^\/artworks\/+/, function (req, res, next) {
 	assert.equal(null, err);
 	var collection = db.collection('artworks_cache');
 	var query      = { };
-	var qopts      = { limit: SEARCH_LIMIT, sort: DEFAULT_SORT };
+	if (DYNAMIC_INDEX) {
+	    var qopts  = { };
+	} else {
+	    var qopts  = { limit: SEARCH_LIMIT, sort: DEFAULT_SORT };
+	}
 
 	console.log("MongoDB connection initiated, looking for artworks index");
 	collection.find(query, qopts).toArray(function(derr, docs) {
 	    assert.equal(null, derr);
-	    console.log("index to dynamize");
-	    res.send(docs);
+	    if (DYNAMIC_INDEX) {
+		var dlen = docs.length, rdocs = new Array();
+		for (var cnt = 0; cnt < SEARCH_LIMIT; cnt++) {
+		    var get = Math.floor(Math.random() * (dlen + 1));
+		    rdocs[cnt] = docs[get];
+		}
+		console.log('index picked up ' + cnt + ' random artworks');
+		res.send(rdocs);
+	    }
+	    else {
+		console.log("index to dynamize");
+		res.send(docs);
+	    }
 	});
     });
 });

@@ -10,7 +10,6 @@ DEBUG=false
 
 artistid=$1
 artistdn=$2
-test "$3" = upd && update=true || update=false
 if test x$artistid = x -o x$artistdn = x; then
     echo "missing argument!" >&2
 fi
@@ -44,14 +43,22 @@ xcroixvbatton()
 }
 
 $wget "$artistdir/$artistid/$artistdn" -O $tmpfile
-displayname=`grep 'meta name="og:description"' $tmpfile | sed 's|.*content="\([^"]*\)".*|\1|'`
-formatted=`echo "$displayname" | sed 's| (.*||g'`
+displayname=`grep 'meta name="og:description"' $tmpfile | sed -e 's|.*content="\([^"]*\)".*|\1|' -e 's|(act\.\([1-9XCVI]\)|(\1|'`
+eval rdatestart=false rdatestop=false datestart=false datestop=false attrib=false
+if echo "$displayname" | grep -i attrib >/dev/null; then
+    displayname=`echo "$displayname" | sed 's|[(]*[Aa][Tt][Tt][Rr][Ii][Bb][\.]*[) ]*||'`
+    attrib=true
+fi
 if echo "$displayname" | grep , >/dev/null; then
     fname=""
     lname=`echo "$displayname" | sed -e 's|^[&amp; ]*||' -e 's|, | \& |g'`
 elif echo "$displayname" | grep '^[ \t]*(' >/dev/null; then
     fname=`echo "$displayname" | sed 's|^[ \t]*\(([^)]*)\)[ \t]*\([^ \t]*\)[A-Z&#0-9; \t]*.*|\2 \1|'`
     lname=`echo "$displayname" | sed 's|^[ \t]*([^)]*)[ \t]*[^ \t]*[ \t]*\(.*\)|\1|'`
+    if echo "$lname" | grep '^[ \t]*(' >/dev/null; then
+	eval `echo "$fname" | sed 's|\([^(]*\)(\([^)]*\))|fname="\2" rname="\1"|'`
+	lname="$rname$lname"
+    fi
 elif echo "$displayname" | grep [a-z] >/dev/null; then
     fname=`echo "$displayname" | sed 's|[ \t][A-Z&#0-9; \t()-]*$||'`
     lname=`echo "$displayname" | sed "s|$fname[ \t]||"`
@@ -59,7 +66,6 @@ else
     fname=
     lname=$displayname
 fi
-eval rdatestart=false rdatestop=false datestart=false datestop=false
 if echo "$lname" | grep '(' >/dev/null; then
     datematch=`echo "$lname" | sed 's|[^(]*(\([^)]*\)).*|\1|'`
     lname=`echo "$lname" | sed 's|[ \t](.*||'`
@@ -132,19 +138,16 @@ if test "$fname"; then
 else
     name="lastname: \"$lname\""
 fi
+if $attrib; then
+    name="$name, attrib: true"
+fi
 
-if $update; then
-    mongo $db >/dev/null 2>&1 <<EOF
+mongo $db >/dev/null 2>&1 <<EOF
 f = { id: $artistid }
 i = { $objid$objstats$name$ddates$idates$udates }
-db.artists.update(f, i);
+o = { upsert: true, multi: false }
+db.artists.update(f, i, o);
 EOF
-else
-    mongo $db >/dev/null 2>&1 <<EOF
-i = { $objid$objstats$name$ddates$idates$udates }
-db.artists.insert(i);
-EOF
-fi
 
 if test $? -ne 0; then
     echo insert most likely failed >&2
