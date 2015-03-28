@@ -11,7 +11,8 @@ var MONGO_HOST     = 'localhost';
 var MONGO_PORT     = 27017;
 var SEARCH_LIMIT   = 21;
 var DEFAULT_SORT   = [[ 'dname', 1 ]];
-var TOP_SORT       = [[ 'rank', 1 ]];
+var TOP_SORT       = [[ 'rank', 'asc' ]];
+var QUERY_TOP      = { "rank": { $gte: 0 } };
 var DYNAMIC_INDEX  = false;
 
 var app       = express();
@@ -324,7 +325,7 @@ app.get(/^\/top\/artists\/([+0-9]*)\/*/, function (req, res, next) {
 	} else {
 	    var skip   = 0;
 	}
-	var query      = { };
+	var query      = QUERY_TOP;
 	var qopts      = { limit: SEARCH_LIMIT,
 			   sort: TOP_SORT,
 			   skip: skip };
@@ -349,7 +350,7 @@ app.get(/^\/top\/artworks\/([+0-9]*)\/*/, function (req, res, next) {
 	} else {
 	    var skip   = 0;
 	}
-	var query      = { };
+	var query      = QUERY_TOP;
 	var qopts      = { limit: SEARCH_LIMIT,
 			   sort: TOP_SORT,
 			   skip: skip };
