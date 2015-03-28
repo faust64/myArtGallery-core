@@ -46,10 +46,23 @@ xcroixvbatton()
 $wget "$artistdir/$artistid/$artistdn" -O $tmpfile
 displayname=`grep 'meta name="og:description"' $tmpfile | sed 's|.*content="\([^"]*\)".*|\1|'`
 formatted=`echo "$displayname" | sed 's| (.*||g'`
+if echo "$displayname" | grep , >/dev/null; then
+    fname=""
+    lname=`echo "$displayname" | sed -e 's|^[&amp; ]*||' -e 's|, | \& |g'`
+elif echo "$displayname" | grep '^[ \t]*(' >/dev/null; then
+    fname=`echo "$displayname" | sed 's|^[ \t]*\(([^)]*)\)[ \t]*\([^ \t]*\)[A-Z&#0-9; \t]*.*|\2 \1|'`
+    lname=`echo "$displayname" | sed 's|^[ \t]*([^)]*)[ \t]*[^ \t]*[ \t]*\(.*\)|\1|'`
+elif echo "$displayname" | grep [a-z] >/dev/null; then
+    fname=`echo "$displayname" | sed 's|[ \t][A-Z&#0-9; \t()-]*$||'`
+    lname=`echo "$displayname" | sed "s|$fname[ \t]||"`
+else
+    fname=
+    lname=$displayname
+fi
 eval rdatestart=false rdatestop=false datestart=false datestop=false
-if echo "$displayname" | grep '(' >/dev/null; then
-    datematch=`echo "$displayname" | sed 's|[^(]*(\([^)]*\)).*|\1|'`
-    displayname=`echo "$displayname" | sed 's|[ \t](.*||'`
+if echo "$lname" | grep '(' >/dev/null; then
+    datematch=`echo "$lname" | sed 's|[^(]*(\([^)]*\)).*|\1|'`
+    lname=`echo "$lname" | sed 's|[ \t](.*||'`
     if echo $datematch | grep - >/dev/null; then
 	eval `echo $datematch | sed 's|\([^ -\t]*\)[ -\t]*\(.*\)|datestart=\1 datestop=\2|'`
     else
@@ -69,8 +82,6 @@ if echo "$displayname" | grep '(' >/dev/null; then
 	rdatestop=$datestop
     fi
 fi
-fname=`echo $displayname | sed 's|[ \t][A-Z \t]*||'`
-lname=`echo $displayname | sed "s|$fname[ \t]||"`
 eval jsonpriceidx= jsonturnover= jsonrank= jsonbestcountry= jsonbestamount=
 if grep '/indice#geo"' $tmpfile >/dev/null; then
     eval `grep -A2 '/indice#geo"' $tmpfile | sed 's|^[ ]*||' | awk '{if ($0 ~ /^[ A-Za-z-]*$/) {print "pays="$0} if ($0 ~ /^[0-9]*%$/){print "tendance="$0}}'`
@@ -116,7 +127,11 @@ objid="id: $artistid, "
 ddates=", dstart: \"$datestart\", dstop: \"$datestop\""
 idates=", istart: \"$rdatestart\", istop: \"$rdatestop\""
 udates=", fetched: `date +%s`, ttl: 1296000"
-name="firstname: \"$fname\", lastname: \"$lname\""
+if test "$fname"; then
+    name="firstname: \"$fname\", lastname: \"$lname\""
+else
+    name="lastname: \"$lname\""
+fi
 
 if $update; then
     mongo $db >/dev/null 2>&1 <<EOF
