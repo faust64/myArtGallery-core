@@ -161,8 +161,8 @@ app.get(/^\/search\/events\/*([+0-9]*)\/([^\/]+)\/+/, function (req, res, next) 
 	}
 
 	console.log("MongoDB connection initiated, looking for event "
-	    + "matching /" + req.params[1] + "/ having city matching " + city
-	    + " and country matching " + country + " [offset:" + skip + "]");
+	    + "matching /" + req.params[1] + "/ having city matching /" + city
+	    + "/ and country matching /" + country + "/ [offset:" + skip + "]");
 	collection.find(query, qopts).toArray(function(derr, docs) {
 	    assert.equal(null, derr);
 	    console.log("query ok");
@@ -436,6 +436,16 @@ app.get(/^\/events\/+/, function (req, res, next) {
 	    var qopts  = { };
 	} else {
 	    var qopts  = { limit: SEARCH_LIMIT, sort: DEFAULT_SORT };
+	}
+	if (req.query.type != undefined &&
+	    (req.query.type == "expo" || req.query.type == "auction")) {
+	    query[req.query.type] = true;
+	}
+	if (req.query.country != undefined) {
+	    query['country'] = req.query.country;
+	}
+	if (req.query.city != undefined) {
+	    query['city'] = req.query.city;
 	}
 
 	console.log("MongoDB connection initiated, looking for events index");
