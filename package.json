@@ -1,0 +1,15 @@
+{
+  "name": "myArtGallery",
+  "version": "0.0.0",
+  "description": "My Art Gallery",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Samuel MARTIN MORO",
+  "license": "BSD-2-Clause",
+  "dependencies": {
+    "express": "~4.12.3",
+    "mongodb": "~1.4.34"
+  }
+}

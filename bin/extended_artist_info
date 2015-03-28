@@ -1,0 +1,139 @@
+#!/bin/sh
+
+db=myArtGallery
+ua="Mozilla/5.0 (Windows NT 5.1; rv:5.0) Gecko/20100101 Firefox/5.0"
+wget="`which wget` -q -U '$ua'"
+basedir="http://fr.artprice.com/"
+artistdir="${basedir}artiste/"
+tmpfile=/tmp/artistfiller.$$
+DEBUG=false
+
+artistid=$1
+artistdn=$2
+test "$3" = upd && update=true || update=false
+if test x$artistid = x -o x$artistdn = x; then
+    echo "missing argument!" >&2
+fi
+
+xcroixvbatton()
+{
+#shameless...
+    case "$1" in
+	XXI)	echo 2000	;;
+	XX)	echo 1900	;;
+	XIX)	echo 1800	;;
+	XVIII)	echo 1700	;;
+	XVII)	echo 1600	;;
+	XVI)	echo 1500	;;
+	XV)	echo 1400	;;
+	XIV)	echo 1300	;;
+	XIII)	echo 1200	;;
+	XII)	echo 1100	;;
+	XI)	echo 1000	;;
+	X)	echo 900	;;
+	IX)	echo 800	;;
+	VIII)	echo 700	;;
+	VII)	echo 600	;;
+	VI)	echo 500	;;
+	V)	echo 400	;;
+	IV)	echo 300	;;
+	III)	echo 200	;;
+	II)	echo 100	;;
+	I)	echo 0		;;
+    esac
+}
+
+$wget "$artistdir/$artistid/$artistdn" -O $tmpfile
+displayname=`grep 'meta name="og:description"' $tmpfile | sed 's|.*content="\([^"]*\)".*|\1|'`
+formatted=`echo "$displayname" | sed 's| (.*||g'`
+eval rdatestart=false rdatestop=false datestart=false datestop=false
+if echo "$displayname" | grep '(' >/dev/null; then
+    datematch=`echo "$displayname" | sed 's|[^(]*(\([^)]*\)).*|\1|'`
+    displayname=`echo "$displayname" | sed 's|[ \t](.*||'`
+    if echo $datematch | grep - >/dev/null; then
+	eval `echo $datematch | sed 's|\([^ -\t]*\)[ -\t]*\(.*\)|datestart=\1 datestop=\2|'`
+    else
+	datestart=`echo $datematch | sed 's| ||'`
+	datestop=$datestart
+    fi
+    if echo $datestart | grep [XCVI] >/dev/null; then
+
+	rdatestart=`xcroixvbatton $datestart`
+	if test "$datestart" = "$datestop"; then
+	    rdatestop=$rdatestart
+	else
+	    rdatestop=`xcroixvbatton $datestop`
+	fi
+    else
+	rdatestart=$datestart
+	rdatestop=$datestop
+    fi
+fi
+fname=`echo $displayname | sed 's|[ \t][A-Z \t]*||'`
+lname=`echo $displayname | sed "s|$fname[ \t]||"`
+eval jsonpriceidx= jsonturnover= jsonrank= jsonbestcountry= jsonbestamount=
+if grep '/indice#geo"' $tmpfile >/dev/null; then
+    eval `grep -A2 '/indice#geo"' $tmpfile | sed 's|^[ ]*||' | awk '{if ($0 ~ /^[ A-Za-z-]*$/) {print "pays="$0} if ($0 ~ /^[0-9]*%$/){print "tendance="$0}}'`
+    jsonbestcountry="bestcountry: '$pays', "
+    jsonbestamount="bestamount: '$tendance', "
+    if $DEBUG; then
+	echo "meilleurs ventes: $pays, $tendance"
+    fi
+fi
+if grep '/indice#rank"' $tmpfile >/dev/null; then
+    rank=`grep -A1 '/indice#rank"' $tmpfile | tail -1 | sed 's| ||g'`
+    jsonrank="rank: $rank, "
+    if $DEBUG; then
+	echo "classement: $rank"
+    fi
+fi
+if grep '/indice#price-index"' $tmpfile >/dev/null; then
+    priceidx=`grep -A1 '/indice#price-index"' $tmpfile | tail -1 | sed 's|^[ \t]*||'`
+    if echo "$priceidx" | grep -E 'arrow.*up' >/dev/null; then
+	priceidx=growing
+    elif echo "$priceidx" | grep -E 'arrow.*down' >/dev/null; then
+	priceidx=decreasing
+    fi
+    jsonpriceidx="priceidx: '$priceidx', "
+    if $DEBUG; then
+	echo "mostly sold: $priceidx"
+    fi
+fi
+if grep '/indice#turnover"' $tmpfile >/dev/null; then
+    turnover=`grep -A1 '/indice#turnover"' $tmpfile | tail -1 | sed 's| ||g'`
+    jsonturnover="turnover: '$turnover', "
+    if $DEBUG; then
+	echo "turnover: $turnover"
+    fi
+fi
+if $DEBUG; then
+    echo "$fname, $lname <$displayname> $datestart-$datestop - $rdatestart-$rdatestop"
+fi
+
+rm -f $tmpfile
+objstats="$jsonpriceidx$jsonturnover$jsonrank$jsonbestcountry$jsonbestamount"
+objid="id: $artistid, "
+ddates=", dstart: \"$datestart\", dstop: \"$datestop\""
+idates=", istart: \"$rdatestart\", istop: \"$rdatestop\""
+udates=", fetched: `date +%s`, ttl: 1296000"
+name="firstname: \"$fname\", lastname: \"$lname\""
+
+if $update; then
+    mongo $db >/dev/null 2>&1 <<EOF
+f = { id: $artistid }
+i = { $objid$objstats$name$ddates$idates$udates }
+db.artists.update(f, i);
+EOF
+else
+    mongo $db >/dev/null 2>&1 <<EOF
+i = { $objid$objstats$name$ddates$idates$udates }
+db.artists.insert(i);
+EOF
+fi
+
+if test $? -ne 0; then
+    echo insert most likely failed >&2
+    exit 1
+fi
+
+exit 0
