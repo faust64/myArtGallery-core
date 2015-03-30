@@ -1,0 +1,81 @@
+SETUP INSTRUCTIONS:
+
+Install node (or nodejs, depending on your system), npm and nginx (or any
+webserver emedding proxy features).
+
+Assuming a small setup (everything embedded on one host), you may also want to
+install mongo server on your host. Otherwise, modify MONGO_HOST, MONGO_PORT and
+MONGO_DATABASE according to your setup.
+
+modify $(INSTALL_ROOT)/app.js so that BIN_PATH = $(INSTALL_ROOT)/bin/
+make sure your nodejs service starts on boot. Eventually: monitor its status,
+restart it when it vanishes (should'nt happend, yet I can't promise everything's
+perfectly working as of right now), ...
+
+remove your webservers' default vhost
+add and enable the following:
+---- sample vhost ----
+upstream myAppGalery {
+    server 127.0.0.1:8080;
+}
+
+server {
+    listen 80;
+    root /var/www;
+    index index.html;
+    server_name myartgallery.unetresgrossebite.com;
+
+    location / {
+	try_files $uri $uri/ /index.html;
+    }
+
+    location /artists/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/artists/;
+    }
+    location /artworks/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/artworks/;
+    }
+    location /events/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/events/;
+    }
+    location /count/artists/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/count/artists/;
+    }
+    location /count/artworks/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/count/artworks/;
+    }
+    location /count/events/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/count/events/;
+    }
+    location /search/artists/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/search/artists/;
+    }
+    location /search/artworks/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/search/artworks/;
+    }
+    location /search/events/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/search/events/;
+    }
+    location /top/artists/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/top/artists/;
+    }
+    location /top/artworks/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/top/artworks/;
+    }
+    location /top/events/ {
+	proxy_redirect off;
+	proxy_pass http://myAppGalery/top/events/;
+    }
+}
+---- / ----
