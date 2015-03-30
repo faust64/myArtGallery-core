@@ -253,7 +253,9 @@ app.get(/^\/artworks\/([^\/]+)\/+/, function (req, res, next) {
 
 		extended.find(query, qopts).toArray(function(dderr, ddocs) {
 		    if (ddocs.length < 1) {
-			var args  = docs['id'] + ' "' + docs['dname'] + '"';
+			var args  = docs['id'] + ' "' + docs['dname'] + '" '
+				  + docs['authorid'] + ' "'
+				  + docs['authordname'] + '"';
 			console.log("looking up for " + args);
 			var child = exec(BIN_PATH
 				  + "extended_artwork_info " + args,
@@ -276,7 +278,9 @@ app.get(/^\/artworks\/([^\/]+)\/+/, function (req, res, next) {
 			res.send(ddocs);
 			if (now > lifetime) {
 			    console.log("update required");
-			    var args  = docs['id'] + ' "' + docs['dname'];
+			    var args  = docs['id'] + ' "' + docs['dname']
+				      + '" ' + docs['authorid'] + ' "'
+				      + docs['authordname'] + '"';
 			    var child = exec(BIN_PATH + "extended_artwork_info "
 				      + args, function(ddderr, stdo, stde) {
 					    console.log("database updated");

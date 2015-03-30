@@ -2,11 +2,22 @@
 
 db=myArtGallery
 ua="Mozilla/5.0 (Windows NT 5.1; rv:5.0) Gecko/20100101 Firefox/5.0"
-wget="`which wget` -q -U '$ua'"
+ualist=useragentlist.txt
 basedir="http://fr.artprice.com/"
 artistdir="${basedir}artiste/"
 tmpfile=/tmp/artistfiller.$$
 DEBUG=false
+if test -f "$ualist"; then
+    tot=`awk 'BEG{cnt=0}{cnt=cnt+1}END{print cnt}' "$ualist"`
+    rand=$RANDOM   #REQUIRES bash / sh-uncompliant!
+    if test $rand -lt $tot; then
+	row=`expr $tot % $rand`
+    else
+	row=`expr $rand % $tot`
+    fi
+    ua=`awk "BEG{cnt=0}{cnt=cnt+1;if (cnt == $row){print; exit;}}" "$ualist"`
+fi
+wget="`which wget` -q -U '$ua'"
 
 artistid=$1
 artistdn=$2

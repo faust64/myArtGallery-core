@@ -1,0 +1,75 @@
+#!/bin/sh
+
+db=myArtGallery
+ua="Mozilla/5.0 (Windows NT 5.1; rv:5.0) Gecko/20100101 Firefox/5.0"
+ualist=useragentlist.txt
+basedir="http://fr.artprice.com/"
+artistdir="${basedir}artiste/"
+tmpfile=/tmp/artworkfiller.$$
+DEBUG=false
+if test -f "$ualist"; then
+    tot=`awk 'BEG{cnt=0}{cnt=cnt+1}END{print cnt}' "$ualist"`
+    rand=$RANDOM   #REQUIRES bash / sh-uncompliant!
+    if test $rand -lt $tot; then
+	row=`expr $tot % $rand`
+    else
+	row=`expr $rand % $tot`
+    fi
+    ua=`awk "BEG{cnt=0}{cnt=cnt+1;if (cnt == $row){print; exit;}}" "$ualist"`
+fi
+wget="`which wget` -q -U '$ua'"
+
+artistid=$1
+artistdn=$2
+artworkid=$3
+artworkdn=$4
+if test x$artistid = x -o x$artistdn = x -o x$artworkid = x -o x$artworkdn = x; then
+    echo "missing argument!" >&2
+fi
+
+$wget "$artistdir/$artistid/$artistdn/lot/search/$artworkid/$artworkdn" -O $tmpfile
+displayname=`grep -A1 '<h1>' $tmpfile | grep -v '<h1>' | sed 's|^[ \t]*||'`
+discipline=`grep -A4 Discipline $tmpfile | grep -v '<[/]*div' | grep -v Discipline | sed 's|^[ \t]*||'`
+technique=`grep -A4 Technique $tmpfile | grep -v '<[/]*div' | grep -v Technique | sed 's|^[ \t]*||'`
+selldate=`grep -A4 'Date de vente' $tmpfile | grep -v '<[/]*div' | grep -v 'Date de vente' | sed 's|^[ \t]*||'`
+country=`grep -A4 Pays $tmpfile | grep -v '<[/]*div' | grep -v Pays | sed 's|^[ \t]*||'`
+
+object=
+if test "$discipline"; then
+    if echo "$discipline" | grep -i sculpture; then
+	what=", type: 'sculpture'"
+    elif echo "$discipline" | grep -i peinture; then
+	what=", type: 'peinture'"
+    fi
+    object="$object, discipline: '$discipline'$what"
+fi
+if test "$technique"; then
+    object="$object, technique: '$technique'"
+fi
+if test "$selldate"; then
+    object="$object, selldate: '$selldate'"
+fi
+if test "$country"; then
+    object="$object, soldin: '$country'"
+fi
+lookup="id: $artworkid, artistid: $artistid, title: '$displayname'"
+object="$lookup$object"
+if $DEBUG; then
+    echo "$object"
+fi
+
+rm -f $tmpfile
+
+mongo $db >/dev/null 2>&1 <<EOF
+f = { $lookup }
+i = { $object }
+o = { upsert: true, multi: false }
+db.artists.update(f, i, o);
+EOF
+
+if test $? -ne 0; then
+    echo insert most likely failed >&2
+    exit 1
+fi
+
+exit 0
