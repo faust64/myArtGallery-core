@@ -119,6 +119,14 @@ app.get(/^\/search\/artworks\/([+0-9]*)\/*([^\/]+)\/+/, function (req, res, next
 	var qopts      = { limit: SEARCH_LIMIT,
 			   sort: DEFAULT_SORT,
 			   skip: skip };
+	if (req.query.type != undefined) {
+	    query['type'] = req.query.type;
+	}
+	if (req.query.authorid != undefined) {
+	    query['authorid'] = req.query.authorid;
+	} else if (req.query.authordn != undefined) {
+	    query['authordn'] = new RegExp(req.query.authordn);
+	}
 
 	console.log("MongoDB connection initiated, looking for piece "
 	    + "matching /" + req.params[1] + "/ [offset:" + skip + "]");
