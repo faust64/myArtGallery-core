@@ -254,6 +254,11 @@ app.get(/^\/artworks\/([^\/]+)\/+/, function (req, res, next) {
 	var query      = { $or: [ { 'dname': req.params[0] },
 				  { 'id': parseInt(req.params[0]) } ] };
 	var qopts      = { limit: 1, sort: DEFAULT_SORT };
+	if (req.query.authorid != undefined) {
+	    query['authorid'] = req.query.authorid;
+	} else if (req.query.authordn != undefined) {
+	    query['authordn'] = new RegExp(req.query.authordn);
+	}
 
 	console.log("MongoDB connection initiated, looking for artwork "
 	    + req.params[0]);
