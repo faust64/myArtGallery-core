@@ -90,10 +90,13 @@ app.get(/^\/search\/artists\/([+0-9]*)\/*([^\/]+)\/+/, function (req, res, next)
 	} else {
 	    var skip   = 0;
 	}
-	var query      = { 'dname': new RegExp(req.params[1]) };
+	var query      = { };
 	var qopts      = { limit: SEARCH_LIMIT,
 			   sort: DEFAULT_SORT,
 			   skip: skip };
+	if (req.params[1] != '*') {
+	    query['dname'] = new RegExp(req.params[1]);
+	}
 
 	console.log("MongoDB connection initiated, looking for artists "
 	    + "matching /" + req.params[1] + "/ [offset:" + skip + "]");
@@ -115,10 +118,13 @@ app.get(/^\/search\/artworks\/([+0-9]*)\/*([^\/]+)\/+/, function (req, res, next
 	} else {
 	    var skip   = 0;
 	}
-	var query      = { 'dname': new RegExp(req.params[1]) };
+	var query      = { };
 	var qopts      = { limit: SEARCH_LIMIT,
 			   sort: DEFAULT_SORT,
 			   skip: skip };
+	if (req.params[1] != '*') {
+	    query['dname'] = new RegExp(req.params[1]);
+	}
 	if (req.query.type != undefined) {
 	    query['type'] = req.query.type;
 	}
