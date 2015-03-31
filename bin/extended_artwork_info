@@ -47,7 +47,8 @@ if test "$technique"; then
     object="$object, technique: '$technique'"
 fi
 if test "$selldate"; then
-    object="$object, selldate: '$selldate'"
+    selldate=`date -d -f +%s --date='$selldate'`
+    object="$object, selldate: $selldate"
 fi
 if test "$country"; then
     object="$object, soldin: '$country'"
