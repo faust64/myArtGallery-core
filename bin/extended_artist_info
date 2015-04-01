@@ -1,5 +1,6 @@
 #!/bin/bash
 
+ttl=1296000	# 15days
 db=myArtGallery
 ua="Mozilla/5.0 (Windows NT 5.1; rv:5.0) Gecko/20100101 Firefox/5.0"
 ualist=useragentlist.txt
@@ -143,7 +144,7 @@ objstats="$jsonpriceidx$jsonturnover$jsonrank$jsonbestcountry$jsonbestamount"
 objid="id: $artistid, "
 ddates=", dstart: \"$datestart\", dstop: \"$datestop\""
 idates=", istart: \"$rdatestart\", istop: \"$rdatestop\""
-udates=", fetched: `date +%s`, ttl: 1296000"
+udates=", fetched: `date +%s`, ttl: $ttl"
 if test "$fname"; then
     name="firstname: \"$fname\", lastname: \"$lname\""
 else

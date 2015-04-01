@@ -1,5 +1,6 @@
 #!/bin/bash
 
+ttl=604800	# 7days
 db=myArtGallery
 ua="Mozilla/5.0 (Windows NT 5.1; rv:5.0) Gecko/20100101 Firefox/5.0"
 ualist=useragentlist.txt
@@ -53,6 +54,7 @@ fi
 if test "$country"; then
     object="$object, soldin: '$country'"
 fi
+object="$object, fetched: `date +%s`, ttl: $ttl"
 lookup="id: $artworkid, artistid: $artistid, title: '$displayname'"
 object="$lookup$object"
 if $DEBUG; then
